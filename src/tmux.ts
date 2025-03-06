@@ -88,7 +88,7 @@ export async function findSessionByName(name: string): Promise<TmuxSession | nul
  */
 export async function listWindows(sessionId: string): Promise<TmuxWindow[]> {
   const format = "#{window_id}:#{window_name}:#{?window_active,1,0}";
-  const output = await executeTmux(`list-windows -t ${sessionId} -F '${format}'`);
+  const output = await executeTmux(`list-windows -t '${sessionId}' -F '${format}'`);
 
   if (!output) return [];
 
@@ -108,7 +108,7 @@ export async function listWindows(sessionId: string): Promise<TmuxWindow[]> {
  */
 export async function listPanes(windowId: string): Promise<TmuxPane[]> {
   const format = "#{pane_id}:#{?pane_active,1,0}:#{pane_height}:#{pane_width}";
-  const output = await executeTmux(`list-panes -t ${windowId} -F '${format}'`);
+  const output = await executeTmux(`list-panes -t '${windowId}' -F '${format}'`);
 
   if (!output) return [];
 
@@ -128,7 +128,7 @@ export async function listPanes(windowId: string): Promise<TmuxPane[]> {
  * Capture content from a specific pane, by default the latest 200 lines.
  */
 export async function capturePaneContent(paneId: string, lines: number = 200): Promise<string> {
-  return executeTmux(`capture-pane -p -t "${paneId}" -S -${lines} -E -`);
+  return executeTmux(`capture-pane -p -t '${paneId}' -S -${lines} -E -`);
 }
 
 /**
@@ -143,7 +143,7 @@ export async function createSession(name: string): Promise<TmuxSession | null> {
  * Create a new window in a session
  */
 export async function createWindow(sessionId: string, name: string): Promise<TmuxWindow | null> {
-  const output = await executeTmux(`new-window -t ${sessionId} -n "${name}"`);
+  const output = await executeTmux(`new-window -t '${sessionId}' -n '${name}'`);
   const windows = await listWindows(sessionId);
   return windows.find(window => window.name === name) || null;
 }

@@ -7,6 +7,16 @@ import * as tmux from "./tmux.js";
 const server = new McpServer({
   name: "tmux-context",
   version: "0.1.0"
+}, {
+  capabilities: {
+    resources: {
+      subscribe: true,
+      listChanged: true
+    },
+    tools: {
+      listChanged: true
+    }
+  }
 });
 
 // List all tmux sessions - Tool
@@ -210,15 +220,20 @@ server.tool(
 
 // Expose tmux session list as a resource
 server.resource(
-  "Sessions List",
-  new ResourceTemplate("tmux://sessions", { list: undefined }),
+  "Tmux Sessions",
+  "tmux://sessions",
   async () => {
     try {
       const sessions = await tmux.listSessions();
       return {
         contents: [{
           uri: "tmux://sessions",
-          text: JSON.stringify(sessions, null, 2)
+          text: JSON.stringify(sessions.map(session => ({
+            id: session.id,
+            name: session.name,
+            attached: session.attached,
+            windows: session.windows
+          })), null, 2)
         }]
       };
     } catch (error) {
@@ -234,8 +249,43 @@ server.resource(
 
 // Expose pane content as a resource
 server.resource(
-  "Pane Content",
-  new ResourceTemplate("tmux://pane/{paneId}", { list: undefined }),
+  "Tmux Pane Content",
+  new ResourceTemplate("tmux://pane/{paneId}", {
+    list: async () => {
+    try {
+    // Get all sessions
+    const sessions = await tmux.listSessions();
+    const paneResources = [];
+
+    // For each session, get all windows
+    for (const session of sessions) {
+    const windows = await tmux.listWindows(session.id);
+
+    // For each window, get all panes
+    for (const window of windows) {
+    const panes = await tmux.listPanes(window.id);
+
+    // For each pane, create a resource with descriptive name
+    for (const pane of panes) {
+    paneResources.push({
+      // TODO: include command and if active
+      name: `Pane: ${session.name} - ${pane.id}`,
+        uri: `tmux://pane/${pane.id}`,
+          description: `Content from pane ${pane.id} in session ${session.name}`
+          });
+         }
+     }
+     }
+
+    return {
+        resources: paneResources
+        };
+      } catch (error) {
+        console.error("Error listing panes:", error);
+        return { resources: [] };
+      }
+    }
+  }),
   async (uri, { paneId }) => {
     try {
       // Ensure paneId is a string
@@ -260,14 +310,14 @@ server.resource(
 
 async function main() {
   console.error("Starting tmux-mcp server...");
-  
+
   try {
     // Check if tmux is running
     const tmuxRunning = await tmux.isTmuxRunning();
     if (!tmuxRunning) {
       console.error("Warning: tmux doesn't appear to be running");
     }
-    
+
     // Start the MCP server
     const transport = new StdioServerTransport();
     await server.connect(transport);

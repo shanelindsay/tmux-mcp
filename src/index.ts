@@ -1,4 +1,4 @@
-import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import { McpServer, ResourceTemplate } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { z } from "zod";
 import * as tmux from "./tmux.js";
@@ -211,7 +211,7 @@ server.tool(
 // Expose tmux session list as a resource
 server.resource(
   "Sessions List",
-  "tmux://sessions",
+  new ResourceTemplate("tmux://sessions", { list: undefined }),
   async () => {
     try {
       const sessions = await tmux.listSessions();
@@ -235,10 +235,12 @@ server.resource(
 // Expose pane content as a resource
 server.resource(
   "Pane Content",
-  "tmux://pane/{paneId}",
-  async (uri, params) => {
+  new ResourceTemplate("tmux://pane/{paneId}", { list: undefined }),
+  async (uri, { paneId }) => {
     try {
-      const content = await tmux.capturePaneContent(params.paneId);
+      // Ensure paneId is a string
+      const paneIdStr = Array.isArray(paneId) ? paneId[0] : paneId;
+      const content = await tmux.capturePaneContent(paneIdStr);
       return {
         contents: [{
           uri: uri.href,

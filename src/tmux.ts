@@ -125,10 +125,10 @@ export async function listPanes(windowId: string): Promise<TmuxPane[]> {
 }
 
 /**
- * Capture content from a specific pane
+ * Capture content from a specific pane, by default the latest 200 lines.
  */
-export async function capturePaneContent(paneId: string): Promise<string> {
-  return executeTmux(`capture-pane -p -t "${paneId}"`);
+export async function capturePaneContent(paneId: string, lines: number = 200): Promise<string> {
+  return executeTmux(`capture-pane -p -t "${paneId}" -S -${lines} -E -`);
 }
 
 /**

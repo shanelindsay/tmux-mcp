@@ -22,8 +22,7 @@ export interface TmuxPane {
   id: string;
   windowId: string;
   active: boolean;
-  height: number;
-  width: number;
+  title: string;
 }
 
 /**
@@ -107,19 +106,18 @@ export async function listWindows(sessionId: string): Promise<TmuxWindow[]> {
  * List panes in a window
  */
 export async function listPanes(windowId: string): Promise<TmuxPane[]> {
-  const format = "#{pane_id}:#{?pane_active,1,0}:#{pane_height}:#{pane_width}";
+  const format = "#{pane_id}:#{pane_title}:#{?pane_active,1,0}";
   const output = await executeTmux(`list-panes -t '${windowId}' -F '${format}'`);
 
   if (!output) return [];
 
   return output.split('\n').map(line => {
-    const [id, active, height, width] = line.split(':');
+    const [id, title, active] = line.split(':');
     return {
       id,
       windowId,
-      active: active === '1',
-      height: parseInt(height, 10),
-      width: parseInt(width, 10)
+      title: title,
+      active: active === '1'
     };
   });
 }

@@ -272,9 +272,9 @@ server.resource(
     for (const pane of panes) {
     paneResources.push({
       // TODO: include command and if active
-      name: `Pane: ${session.name} - ${pane.id}`,
+      name: `Pane: ${session.name} - ${pane.id} - ${pane.title} ${pane.active ? "(active)" : ""}`,
         uri: `tmux://pane/${pane.id}`,
-          description: `Content from pane ${pane.id} in session ${session.name}`
+          description: `Content from pane ${pane.id} - ${pane.title} in session ${session.name}`
           });
          }
      }

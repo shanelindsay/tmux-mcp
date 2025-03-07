@@ -215,6 +215,7 @@ export async function checkCommandStatus(commandId: string): Promise<CommandExec
   const markerPattern = /TMUX_MCP_DONE_(\d+)/;
   const match = content.match(markerPattern);
 
+  // TODO: this is fragile
   if (match) {
     const exitCode = parseInt(match[1], 10);
 

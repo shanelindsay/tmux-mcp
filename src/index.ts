@@ -1,3 +1,4 @@
+import { parseArgs } from 'node:util';
 import { McpServer, ResourceTemplate } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { z } from "zod";
@@ -221,6 +222,87 @@ server.tool(
   }
 );
 
+// Execute command in pane
+server.tool(
+  "execute-command",
+  "Execute a command in a tmux pane and get results",
+  {
+    paneId: z.string().describe("ID of the tmux pane"),
+    command: z.string().describe("Command to execute")
+  },
+  async ({ paneId, command }) => {
+    try {
+      const commandId = await tmux.executeCommand(paneId, command);
+
+      // Create the resource URI for this command's results
+      const resourceUri = `tmux://command/${commandId}/result`;
+
+      return {
+        content: [{
+          type: "text",
+          text: `Command execution started.\n\nTo get results, subscribe to and read resource: ${resourceUri}\n\nStatus will change from 'pending' to 'completed' or 'error' when finished.`
+        }]
+      };
+    } catch (error) {
+      return {
+        content: [{
+          type: "text",
+          text: `Error executing command: ${error}`
+        }],
+        isError: true
+      };
+    }
+  }
+);
+
+// Add polling helper tool
+server.tool(
+  "get-command-result",
+  "Get the result of an executed command",
+  {
+    commandId: z.string().describe("ID of the executed command")
+  },
+  async ({ commandId }) => {
+    try {
+      // Check and update command status
+      const command = await tmux.checkCommandStatus(commandId);
+
+      if (!command) {
+        return {
+          content: [{
+            type: "text",
+            text: `Command not found: ${commandId}`
+          }],
+          isError: true
+        };
+      }
+
+      // Format the response based on command status
+      let resultText;
+      if (command.status === 'pending') {
+        resultText = `Command still executing...\nStarted: ${command.startTime.toISOString()}\nCommand: ${command.command}`;
+      } else {
+        resultText = `Status: ${command.status}\nExit code: ${command.exitCode}\nCommand: ${command.command}\n\n--- Output ---\n${command.result}`;
+      }
+
+      return {
+        content: [{
+          type: "text",
+          text: resultText
+        }]
+      };
+    } catch (error) {
+      return {
+        content: [{
+          type: "text",
+          text: `Error retrieving command result: ${error}`
+        }],
+        isError: true
+      };
+    }
+  }
+);
+
 // Expose tmux session list as a resource
 server.resource(
   "Tmux Sessions",
@@ -377,9 +459,22 @@ server.resource(
 );
 
 async function main() {
-  console.error("Starting tmux-mcp server...");
+  console.log("Starting tmux-mcp server...");
 
   try {
+    const { values } = parseArgs({
+      options: {
+        'shell-type': { type: 'string', default: 'bash', short: 's' }
+      }
+    });
+
+    // Set shell configuration
+    tmux.setShellConfig({
+      type: values['shell-type'] as string
+    });
+
+    console.log(`Using shell type: ${values['shell-type']}`);
+
     // Check if tmux is running
     const tmuxRunning = await tmux.isTmuxRunning();
     if (!tmuxRunning) {
@@ -389,7 +484,7 @@ async function main() {
     // Start the MCP server
     const transport = new StdioServerTransport();
     await server.connect(transport);
-    console.error("Server connected and running");
+    console.log("Server connected and running");
   } catch (error) {
     console.error("Failed to start server:", error);
     process.exit(1);

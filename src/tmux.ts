@@ -36,6 +36,21 @@ interface CommandExecution {
   exitCode?: number;
 }
 
+export type ShellType = 'bash' | 'zsh' | 'fish';
+
+let shellConfig: { type: ShellType } = { type: 'bash' };
+
+export function setShellConfig(config: { type: string }): void {
+  // Validate shell type
+  const validShells: ShellType[] = ['bash', 'zsh', 'fish'];
+
+  if (validShells.includes(config.type as ShellType)) {
+    shellConfig = { type: config.type as ShellType };
+  } else {
+    console.error(`Invalid shell type: ${config.type}. Falling back to bash.`);
+    shellConfig = { type: 'bash' };
+  }
+}
 
 /**
  * Execute a tmux command and return the result
@@ -167,7 +182,11 @@ export async function executeCommand(paneId: string, command: string): Promise<s
   const commandId = uuidv4();
 
   // Add completion marker to detect when command finishes
-  const markerText = `TMUX_MCP_DONE_$?`;
+  let markerText = `TMUX_MCP_DONE_$?`;
+  if (shellConfig.type === 'fish') {
+    markerText = `TMUX_MCP_DONE_$status`;
+  }
+
   const fullCommand = `${command}; echo "${markerText}"`;
 
   // Store command in tracking map

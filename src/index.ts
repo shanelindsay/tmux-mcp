@@ -311,6 +311,71 @@ server.resource(
   }
 );
 
+// Create dynamic resource for command executions
+server.resource(
+  "Command Execution Result",
+  new ResourceTemplate("tmux://command/{commandId}/result", {
+    list: async () => {
+      // Only list active commands that aren't too old
+      tmux.cleanupOldCommands(30); // Clean commands older than 30 minutes
+
+      const resources = [];
+      for (const id of tmux.getActiveCommandIds()) {
+        const command = tmux.getCommand(id);
+        if (command) {
+          resources.push({
+            name: `Command: ${command.command.substring(0, 30)}${command.command.length > 30 ? '...' : ''}`,
+            uri: `tmux://command/${id}/result`,
+            description: `Execution status: ${command.status}`
+          });
+        }
+      }
+
+      return { resources };
+    }
+  }),
+  async (uri, { commandId }) => {
+    try {
+      // Ensure commandId is a string
+      const commandIdStr = Array.isArray(commandId) ? commandId[0] : commandId;
+
+      // Check command status
+      const command = await tmux.checkCommandStatus(commandIdStr);
+
+      if (!command) {
+        return {
+          contents: [{
+            uri: uri.href,
+            text: `Command not found: ${commandIdStr}`
+          }]
+        };
+      }
+
+      // Format the response based on command status
+      let resultText;
+      if (command.status === 'pending') {
+        resultText = `Command still executing...\nStarted: ${command.startTime.toISOString()}\nCommand: ${command.command}`;
+      } else {
+        resultText = `Status: ${command.status}\nExit code: ${command.exitCode}\nCommand: ${command.command}\n\n--- Output ---\n${command.result}`;
+      }
+
+      return {
+        contents: [{
+          uri: uri.href,
+          text: resultText
+        }]
+      };
+    } catch (error) {
+      return {
+        contents: [{
+          uri: uri.href,
+          text: `Error retrieving command result: ${error}`
+        }]
+      };
+    }
+  }
+);
+
 async function main() {
   console.error("Starting tmux-mcp server...");
 

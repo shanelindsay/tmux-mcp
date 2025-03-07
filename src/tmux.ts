@@ -1,5 +1,6 @@
 import { exec as execCallback } from "child_process";
 import { promisify } from "util";
+import { v4 as uuidv4 } from 'uuid';
 
 const exec = promisify(execCallback);
 
@@ -25,15 +26,26 @@ export interface TmuxPane {
   title: string;
 }
 
+interface CommandExecution {
+  id: string;
+  paneId: string;
+  command: string;
+  status: 'pending' | 'completed' | 'error';
+  startTime: Date;
+  result?: string;
+  exitCode?: number;
+}
+
+
 /**
  * Execute a tmux command and return the result
  */
-export async function executeTmux(command: string): Promise<string> {
+export async function executeTmux(tmuxCommand: string): Promise<string> {
   try {
-    const { stdout } = await exec(`tmux ${command}`);
+    const { stdout } = await exec(`tmux ${tmuxCommand}`);
     return stdout.trim();
   } catch (error: any) {
-    console.error(`Tmux command failed: ${command}`, error.message);
+    console.error(`Tmux command failed: ${tmuxCommand}`, error.message);
     throw new Error(`Failed to execute tmux command: ${error.message}`);
   }
 }
@@ -145,3 +157,93 @@ export async function createWindow(sessionId: string, name: string): Promise<Tmu
   const windows = await listWindows(sessionId);
   return windows.find(window => window.name === name) || null;
 }
+
+// Map to track ongoing command executions
+const activeCommands = new Map<string, CommandExecution>();
+
+// Execute a command in a tmux pane and track its execution
+export async function executeCommand(paneId: string, command: string): Promise<string> {
+  // Generate unique ID for this command execution
+  const commandId = uuidv4();
+
+  // Add completion marker to detect when command finishes
+  const markerText = `TMUX_MCP_DONE_$?`;
+  const fullCommand = `${command}; echo "${markerText}"`;
+
+  // Store command in tracking map
+  activeCommands.set(commandId, {
+    id: commandId,
+    paneId,
+    command,
+    status: 'pending',
+    startTime: new Date()
+  });
+
+  // Send the command to the tmux pane
+  await executeTmux(`send-keys -t '${paneId}' '${fullCommand.replace(/'/g, "'\\''")}' Enter`);
+
+  return commandId;
+}
+
+export async function checkCommandStatus(commandId: string): Promise<CommandExecution | null> {
+  const command = activeCommands.get(commandId);
+  if (!command) return null;
+
+  if (command.status !== 'pending') return command;
+
+  const content = await capturePaneContent(command.paneId);
+
+  const markerPattern = /TMUX_MCP_DONE_(\d+)/;
+  const match = content.match(markerPattern);
+
+  if (match) {
+    const exitCode = parseInt(match[1], 10);
+
+    command.status = exitCode === 0 ? 'completed' : 'error';
+    command.exitCode = exitCode;
+
+    // Get the command output (everything before our marker)
+    const outputLines = content.split('\n');
+    const markerIndex = outputLines.findIndex(line => line.includes('TMUX_MCP_DONE_'));
+
+    // Start from the command input line and go up to marker
+    const commandLineIndex = outputLines.findIndex(line =>
+      line.includes(command.command));
+
+    // If we found both the command and marker, extract output
+    if (commandLineIndex >= 0 && markerIndex > commandLineIndex) {
+      command.result = outputLines.slice(commandLineIndex + 1, markerIndex).join('\n');
+    } else {
+      command.result = "Command output could not be captured properly";
+    }
+
+    // Update in map
+    activeCommands.set(commandId, command);
+  }
+
+  return command;
+}
+
+// Get command by ID
+export function getCommand(commandId: string): CommandExecution | null {
+  return activeCommands.get(commandId) || null;
+}
+
+// Get all active command IDs
+export function getActiveCommandIds(): string[] {
+  return Array.from(activeCommands.keys());
+}
+
+// Clean up completed commands older than a certain time
+export function cleanupOldCommands(maxAgeMinutes: number = 60): void {
+  const now = new Date();
+
+  for (const [id, command] of activeCommands.entries()) {
+    const ageMinutes = (now.getTime() - command.startTime.getTime()) / (1000 * 60);
+
+    if (command.status !== 'pending' && ageMinutes > maxAgeMinutes) {
+      activeCommands.delete(id);
+    }
+  }
+}
+

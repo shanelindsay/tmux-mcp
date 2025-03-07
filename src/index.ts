@@ -28,16 +28,16 @@ server.tool(
     try {
       const sessions = await tmux.listSessions();
       return {
-        content: [{ 
-          type: "text", 
-          text: JSON.stringify(sessions, null, 2) 
+        content: [{
+          type: "text",
+          text: JSON.stringify(sessions, null, 2)
         }]
       };
     } catch (error) {
       return {
-        content: [{ 
-          type: "text", 
-          text: `Error listing tmux sessions: ${error}` 
+        content: [{
+          type: "text",
+          text: `Error listing tmux sessions: ${error}`
         }],
         isError: true
       };
@@ -56,16 +56,16 @@ server.tool(
     try {
       const session = await tmux.findSessionByName(name);
       return {
-        content: [{ 
-          type: "text", 
-          text: session ? JSON.stringify(session, null, 2) : `Session not found: ${name}` 
+        content: [{
+          type: "text",
+          text: session ? JSON.stringify(session, null, 2) : `Session not found: ${name}`
         }]
       };
     } catch (error) {
       return {
-        content: [{ 
-          type: "text", 
-          text: `Error finding tmux session: ${error}` 
+        content: [{
+          type: "text",
+          text: `Error finding tmux session: ${error}`
         }],
         isError: true
       };
@@ -84,16 +84,16 @@ server.tool(
     try {
       const windows = await tmux.listWindows(sessionId);
       return {
-        content: [{ 
-          type: "text", 
-          text: JSON.stringify(windows, null, 2) 
+        content: [{
+          type: "text",
+          text: JSON.stringify(windows, null, 2)
         }]
       };
     } catch (error) {
       return {
-        content: [{ 
-          type: "text", 
-          text: `Error listing windows: ${error}` 
+        content: [{
+          type: "text",
+          text: `Error listing windows: ${error}`
         }],
         isError: true
       };
@@ -112,16 +112,16 @@ server.tool(
     try {
       const panes = await tmux.listPanes(windowId);
       return {
-        content: [{ 
-          type: "text", 
-          text: JSON.stringify(panes, null, 2) 
+        content: [{
+          type: "text",
+          text: JSON.stringify(panes, null, 2)
         }]
       };
     } catch (error) {
       return {
-        content: [{ 
-          type: "text", 
-          text: `Error listing panes: ${error}` 
+        content: [{
+          type: "text",
+          text: `Error listing panes: ${error}`
         }],
         isError: true
       };
@@ -134,22 +134,25 @@ server.tool(
   "capture-pane",
   "Capture content from a tmux pane",
   {
-    paneId: z.string().describe("ID of the tmux pane")
+    paneId: z.string().describe("ID of the tmux pane"),
+    lines: z.string().optional().describe("Number of lines to capture")
   },
-  async ({ paneId }) => {
+  async ({ paneId, lines }) => {
     try {
-      const content = await tmux.capturePaneContent(paneId);
+      // Parse lines parameter if provided
+      const linesCount = lines ? parseInt(lines, 10) : undefined;
+      const content = await tmux.capturePaneContent(paneId, linesCount);
       return {
-        content: [{ 
-          type: "text", 
-          text: content || "No content captured" 
+        content: [{
+          type: "text",
+          text: content || "No content captured"
         }]
       };
     } catch (error) {
       return {
-        content: [{ 
-          type: "text", 
-          text: `Error capturing pane content: ${error}` 
+        content: [{
+          type: "text",
+          text: `Error capturing pane content: ${error}`
         }],
         isError: true
       };
@@ -168,18 +171,18 @@ server.tool(
     try {
       const session = await tmux.createSession(name);
       return {
-        content: [{ 
-          type: "text", 
-          text: session 
-            ? `Session created: ${JSON.stringify(session, null, 2)}` 
-            : `Failed to create session: ${name}` 
+        content: [{
+          type: "text",
+          text: session
+            ? `Session created: ${JSON.stringify(session, null, 2)}`
+            : `Failed to create session: ${name}`
         }]
       };
     } catch (error) {
       return {
-        content: [{ 
-          type: "text", 
-          text: `Error creating session: ${error}` 
+        content: [{
+          type: "text",
+          text: `Error creating session: ${error}`
         }],
         isError: true
       };
@@ -199,18 +202,18 @@ server.tool(
     try {
       const window = await tmux.createWindow(sessionId, name);
       return {
-        content: [{ 
-          type: "text", 
-          text: window 
-            ? `Window created: ${JSON.stringify(window, null, 2)}` 
-            : `Failed to create window: ${name}` 
+        content: [{
+          type: "text",
+          text: window
+            ? `Window created: ${JSON.stringify(window, null, 2)}`
+            : `Failed to create window: ${name}`
         }]
       };
     } catch (error) {
       return {
-        content: [{ 
-          type: "text", 
-          text: `Error creating window: ${error}` 
+        content: [{
+          type: "text",
+          text: `Error creating window: ${error}`
         }],
         isError: true
       };

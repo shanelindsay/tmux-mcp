@@ -458,8 +458,6 @@ server.resource(
 );
 
 async function main() {
-  console.log("Starting tmux-mcp server...");
-
   try {
     const { values } = parseArgs({
       options: {
@@ -472,8 +470,6 @@ async function main() {
       type: values['shell-type'] as string
     });
 
-    console.log(`Using shell type: ${values['shell-type']}`);
-
     // Check if tmux is running
     const tmuxRunning = await tmux.isTmuxRunning();
     if (!tmuxRunning) {
@@ -483,7 +479,6 @@ async function main() {
     // Start the MCP server
     const transport = new StdioServerTransport();
     await server.connect(transport);
-    console.log("Server connected and running");
   } catch (error) {
     console.error("Failed to start server:", error);
     process.exit(1);

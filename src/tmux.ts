@@ -182,12 +182,13 @@ export async function executeCommand(paneId: string, command: string): Promise<s
   const commandId = uuidv4();
 
   // Add completion marker to detect when command finishes
-  let markerText = `TMUX_MCP_DONE_$?`;
+  let startMarkerText = 'TMUX_MCP_START';
+  let endMarkerText = `TMUX_MCP_DONE_$?`;
   if (shellConfig.type === 'fish') {
-    markerText = `TMUX_MCP_DONE_$status`;
+    endMarkerText = `TMUX_MCP_DONE_$status`;
   }
 
-  const fullCommand = `${command}; echo "${markerText}"`;
+  const fullCommand = `echo "${startMarkerText}"; ${command}; echo "${endMarkerText}"`;
 
   // Store command in tracking map
   activeCommands.set(commandId, {
@@ -212,30 +213,33 @@ export async function checkCommandStatus(commandId: string): Promise<CommandExec
 
   const content = await capturePaneContent(command.paneId);
 
-  const markerPattern = /TMUX_MCP_DONE_(\d+)/;
-  const match = content.match(markerPattern);
+  const startMarkerText = 'TMUX_MCP_START';
+  const endMarkerPrefix = 'TMUX_MCP_DONE_';
 
-  // TODO: this is fragile
-  if (match) {
-    const exitCode = parseInt(match[1], 10);
+  // Find the last occurrence of the markers
+  const startIndex = content.lastIndexOf(startMarkerText);
+  const endIndex = content.lastIndexOf(endMarkerPrefix);
+
+  if (startIndex === -1 || endIndex === -1 || endIndex <= startIndex) {
+    command.result = "Command output could not be captured properly";
+    return command;
+  }
+
+  // Extract exit code from the end marker line
+  const endLine = content.substring(endIndex).split('\n')[0];
+  const exitCodeMatch = endLine.match(/TMUX_MCP_DONE_(\d+)/);
+
+  if (exitCodeMatch) {
+    const exitCode = parseInt(exitCodeMatch[1], 10);
 
     command.status = exitCode === 0 ? 'completed' : 'error';
     command.exitCode = exitCode;
 
-    // Get the command output (everything before our marker)
-    const outputLines = content.split('\n');
-    const markerIndex = outputLines.findIndex(line => line.includes('TMUX_MCP_DONE_'));
+    // Extract output between the start and end markers
+    const outputStart = startIndex + startMarkerText.length;
+    const outputContent = content.substring(outputStart, endIndex).trim();
 
-    // Start from the command input line and go up to marker
-    const commandLineIndex = outputLines.findIndex(line =>
-      line.includes(command.command));
-
-    // If we found both the command and marker, extract output
-    if (commandLineIndex >= 0 && markerIndex > commandLineIndex) {
-      command.result = outputLines.slice(commandLineIndex + 1, markerIndex).join('\n');
-    } else {
-      command.result = "Command output could not be captured properly";
-    }
+    command.result = outputContent.substring(outputContent.indexOf('\n') + 1).trim();
 
     // Update in map
     activeCommands.set(commandId, command);

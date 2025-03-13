@@ -47,7 +47,6 @@ export function setShellConfig(config: { type: string }): void {
   if (validShells.includes(config.type as ShellType)) {
     shellConfig = { type: config.type as ShellType };
   } else {
-    console.error(`Invalid shell type: ${config.type}. Falling back to bash.`);
     shellConfig = { type: 'bash' };
   }
 }
@@ -60,7 +59,6 @@ export async function executeTmux(tmuxCommand: string): Promise<string> {
     const { stdout } = await exec(`tmux ${tmuxCommand}`);
     return stdout.trim();
   } catch (error: any) {
-    console.error(`Tmux command failed: ${tmuxCommand}`, error.message);
     throw new Error(`Failed to execute tmux command: ${error.message}`);
   }
 }

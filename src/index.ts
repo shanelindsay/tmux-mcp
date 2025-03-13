@@ -16,7 +16,8 @@ const server = new McpServer({
     },
     tools: {
       listChanged: true
-    }
+    },
+    logging: {}
   }
 });
 
@@ -365,7 +366,11 @@ server.resource(
         resources: paneResources
         };
       } catch (error) {
-        console.error("Error listing panes:", error);
+        server.server.sendLoggingMessage({
+            level: 'error',
+            data: `Error listing panes: ${error}`
+        });
+
         return { resources: [] };
       }
     }
@@ -473,14 +478,19 @@ async function main() {
     // Check if tmux is running
     const tmuxRunning = await tmux.isTmuxRunning();
     if (!tmuxRunning) {
-      console.error("Warning: tmux doesn't appear to be running");
+      server.server.sendLoggingMessage({
+          level: 'error',
+          data: 'Tmux seems not running'
+      });
+
+      throw "Tmux server is not running";
     }
 
     // Start the MCP server
     const transport = new StdioServerTransport();
     await server.connect(transport);
   } catch (error) {
-    console.error("Failed to start server:", error);
+    console.error("Failed to start MCP server:", error);
     process.exit(1);
   }
 }

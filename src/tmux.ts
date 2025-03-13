@@ -176,17 +176,15 @@ export async function createWindow(sessionId: string, name: string): Promise<Tmu
 // Map to track ongoing command executions
 const activeCommands = new Map<string, CommandExecution>();
 
+const startMarkerText = 'TMUX_MCP_START';
+const endMarkerPrefix = "TMUX_MCP_DONE_";
+
 // Execute a command in a tmux pane and track its execution
 export async function executeCommand(paneId: string, command: string): Promise<string> {
   // Generate unique ID for this command execution
   const commandId = uuidv4();
 
-  // Add completion marker to detect when command finishes
-  let startMarkerText = 'TMUX_MCP_START';
-  let endMarkerText = `TMUX_MCP_DONE_$?`;
-  if (shellConfig.type === 'fish') {
-    endMarkerText = `TMUX_MCP_DONE_$status`;
-  }
+  const endMarkerText = getEndMarkerText();
 
   const fullCommand = `echo "${startMarkerText}"; ${command}; echo "${endMarkerText}"`;
 
@@ -213,9 +211,6 @@ export async function checkCommandStatus(commandId: string): Promise<CommandExec
 
   const content = await capturePaneContent(command.paneId);
 
-  const startMarkerText = 'TMUX_MCP_START';
-  const endMarkerPrefix = 'TMUX_MCP_DONE_';
-
   // Find the last occurrence of the markers
   const startIndex = content.lastIndexOf(startMarkerText);
   const endIndex = content.lastIndexOf(endMarkerPrefix);
@@ -227,7 +222,8 @@ export async function checkCommandStatus(commandId: string): Promise<CommandExec
 
   // Extract exit code from the end marker line
   const endLine = content.substring(endIndex).split('\n')[0];
-  const exitCodeMatch = endLine.match(/TMUX_MCP_DONE_(\d+)/);
+  const endMarkerRegex = new RegExp(`${endMarkerPrefix}(\\d+)`);
+  const exitCodeMatch = endLine.match(endMarkerRegex);
 
   if (exitCodeMatch) {
     const exitCode = parseInt(exitCodeMatch[1], 10);
@@ -269,5 +265,11 @@ export function cleanupOldCommands(maxAgeMinutes: number = 60): void {
       activeCommands.delete(id);
     }
   }
+}
+
+function getEndMarkerText(): string {
+  return shellConfig.type === 'fish'
+    ? `${endMarkerPrefix}$status`
+    : `${endMarkerPrefix}$?`;
 }
 

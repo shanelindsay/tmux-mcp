@@ -14,7 +14,7 @@
     "tmux",
     "claude"
   ],
-  "author": "",
+  "author": "nickgnd",
   "license": "MIT",
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.0.2",
@@ -25,5 +25,13 @@
     "@types/node": "^20.10.5",
     "@types/uuid": "^10.0.0",
     "typescript": "^5.3.3"
-  }
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/nickgnd/tmux-mcp.git"
+  },
+  "bugs": {
+    "url": "https://github.com/nickgnd/tmux-mcp/issues"
+  },
+  "homepage": "https://github.com/nickgnd/tmux-mcp#readme"
 }

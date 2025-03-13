@@ -7,28 +7,13 @@ Model Context Protocol server that enables Claude Desktop to interact with and v
 - List and search tmux sessions
 - View and navigate tmux windows and panes
 - Capture and expose terminal content from any pane
-- Execute commands in tmux panes and retrieve results
+- Execute commands in tmux panes and retrieve results (use it at your own risk ⚠️)
 - Create new tmux sessions and windows
 
 ## Prerequisites
 
 - Node.js
-- npm or yarn
 - tmux installed and running
-
-## Installation
-
-```bash
-# Clone the repository
-git clone https://github.com/yourusername/tmux-mcp.git
-cd tmux-mcp
-
-# Install dependencies
-npm install
-
-# Build the project
-npm run build
-```
 
 ## Usage
 
@@ -39,10 +24,8 @@ Add this MCP server to your Claude Desktop configuration:
 ```json
 "mcpServers": {
   "tmux": {
-    "command": "/path/to/node",
-    "args": [
-      "path/to/tmux-mcp/build/index.js"
-    ]
+    "command": "npx",
+    "args": ["-y", "tmux-mcp"]
   }
 }
 ```
@@ -54,16 +37,13 @@ You can optionally specify the command line shell you are using, if unspecified 
 ```json
 "mcpServers": {
   "tmux": {
-    "command": "/path/to/node",
-    "args": [
-      "path/to/tmux-mcp/build/index.js",
-      "--shell-type=fish"
-    ]
+    "command": "npx",
+    "args": ["-y", "tmux-mcp", "--shell-type=fish"]
   }
 }
 ```
 
-The MCP server needs to know the shell only when executing command, to properly read its exit status.
+The MCP server needs to know the shell only when executing commands, to properly read its exit status.
 
 ## Available Resources
 

@@ -223,7 +223,7 @@ server.tool(
   }
 );
 
-// Execute command in pane
+// Execute command in pane - Tool
 server.tool(
   "execute-command",
   "Execute a command in a tmux pane and get results",
@@ -256,7 +256,7 @@ server.tool(
   }
 );
 
-// Add polling helper tool
+// Get command result - Tool
 server.tool(
   "get-command-result",
   "Get the result of an executed command",

@@ -398,7 +398,7 @@ server.resource(
   new ResourceTemplate("tmux://command/{commandId}/result", {
     list: async () => {
       // Only list active commands that aren't too old
-      tmux.cleanupOldCommands(30); // Clean commands older than 30 minutes
+      tmux.cleanupOldCommands(10); // Clean commands older than 10 minutes
 
       const resources = [];
       for (const id of tmux.getActiveCommandIds()) {

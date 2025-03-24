@@ -207,7 +207,7 @@ export async function checkCommandStatus(commandId: string): Promise<CommandExec
 
   if (command.status !== 'pending') return command;
 
-  const content = await capturePaneContent(command.paneId);
+  const content = await capturePaneContent(command.paneId, 1000);
 
   // Find the last occurrence of the markers
   const startIndex = content.lastIndexOf(startMarkerText);

@@ -10,6 +10,12 @@ Model Context Protocol server that enables Claude Desktop to interact with and v
 - Execute commands in tmux panes and retrieve results (use it at your own risk ⚠️)
 - Create new tmux sessions and windows
 
+Check out this short video to get excited!
+
+</br>
+
+[![youtube video](http://i.ytimg.com/vi/3W0pqRF1RS0/hqdefault.jpg)](https://www.youtube.com/watch?v=3W0pqRF1RS0)
+
 ## Prerequisites
 
 - Node.js

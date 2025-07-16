@@ -174,9 +174,6 @@ export async function createWindow(sessionId: string, name: string): Promise<Tmu
 // Map to track ongoing command executions
 const activeCommands = new Map<string, CommandExecution>();
 
-const startMarkerText = 'TMUX_MCP_START';
-const endMarkerPrefix = "TMUX_MCP_DONE_";
-
 // Execute a command in a tmux pane and track its execution
 export async function executeCommand(paneId: string, command: string): Promise<string> {
   // Generate unique ID for this command execution

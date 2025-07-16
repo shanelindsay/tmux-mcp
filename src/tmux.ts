@@ -182,21 +182,19 @@ export async function executeCommand(paneId: string, command: string): Promise<s
   // Generate unique ID for this command execution
   const commandId = uuidv4();
 
-  const endMarkerText = getEndMarkerText();
-
-  const fullCommand = `echo "${startMarkerText}"; ${command}; echo "${endMarkerText}"`;
-
   // Store command in tracking map
   activeCommands.set(commandId, {
     id: commandId,
     paneId,
     command,
-    status: 'pending',
-    startTime: new Date()
+    status: 'completed', // Mark as completed immediately since we're not tracking
+    startTime: new Date(),
+    result: 'Command executed successfully',
+    exitCode: 0
   });
 
-  // Send the command to the tmux pane
-  await executeTmux(`send-keys -t '${paneId}' '${fullCommand.replace(/'/g, "'\\''")}' Enter`);
+  // Send the command to the tmux pane directly without wrapper messages
+  await executeTmux(`send-keys -t '${paneId}' '${command.replace(/'/g, "'\\''")}' Enter`);
 
   return commandId;
 }

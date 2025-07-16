@@ -227,9 +227,4 @@ export function cleanupOldCommands(maxAgeMinutes: number = 60): void {
   }
 }
 
-function getEndMarkerText(): string {
-  return shellConfig.type === 'fish'
-    ? `${endMarkerPrefix}$status`
-    : `${endMarkerPrefix}$?`;
-}
 

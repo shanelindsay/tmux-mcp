@@ -203,40 +203,7 @@ export async function checkCommandStatus(commandId: string): Promise<CommandExec
   const command = activeCommands.get(commandId);
   if (!command) return null;
 
-  if (command.status !== 'pending') return command;
-
-  const content = await capturePaneContent(command.paneId, 1000);
-
-  // Find the last occurrence of the markers
-  const startIndex = content.lastIndexOf(startMarkerText);
-  const endIndex = content.lastIndexOf(endMarkerPrefix);
-
-  if (startIndex === -1 || endIndex === -1 || endIndex <= startIndex) {
-    command.result = "Command output could not be captured properly";
-    return command;
-  }
-
-  // Extract exit code from the end marker line
-  const endLine = content.substring(endIndex).split('\n')[0];
-  const endMarkerRegex = new RegExp(`${endMarkerPrefix}(\\d+)`);
-  const exitCodeMatch = endLine.match(endMarkerRegex);
-
-  if (exitCodeMatch) {
-    const exitCode = parseInt(exitCodeMatch[1], 10);
-
-    command.status = exitCode === 0 ? 'completed' : 'error';
-    command.exitCode = exitCode;
-
-    // Extract output between the start and end markers
-    const outputStart = startIndex + startMarkerText.length;
-    const outputContent = content.substring(outputStart, endIndex).trim();
-
-    command.result = outputContent.substring(outputContent.indexOf('\n') + 1).trim();
-
-    // Update in map
-    activeCommands.set(commandId, command);
-  }
-
+  // Since we're not using markers, commands are marked as completed immediately
   return command;
 }
 
